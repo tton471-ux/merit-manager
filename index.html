@@ -12,21 +12,49 @@
 <section class="card hidden" id="backup"><h2 id="h4">สำรองและกู้คืนข้อมูล</h2><div class="actions"><button id="export">ดาวน์โหลด JSON สำรอง</button><label class="secondary" style="padding:10px;border-radius:9px">นำเข้า JSON<input id="restore" type="file" accept=".json" style="display:block"></label><button class="danger" id="clear">ลบข้อมูลทั้งหมด</button></div></section>
 <p style="font-size:12px;color:#64746a">ข้อมูลเก็บไว้ในอุปกรณ์นี้เท่านั้น แนะนำสำรองข้อมูลเป็นประจำ · ไม่แปลงอัตราแลกเปลี่ยนระหว่างกีบและบาท</p></main>
 <script>
-const $=id=>document.getElementById(id),today=new Date().toISOString().slice(0,10);$('dd').value=today;$('ed').value=today;
-let data=JSON.parse(localStorage.getItem('meritRecordsV2')||'[]'),lang=localStorage.getItem('meritLang')||'th';
-const tr={th:['ระบบจัดการเงินทำบุญ','บันทึกรายรับ รายจ่าย เงินกีบและเงินบาท','รายรับกีบ','รายจ่ายกีบ','คงเหลือกีบ','คงเหลือบาท','เพิ่มเงินทำบุญ','บันทึกค่าใช้จ่าย','รายการทั้งหมด','สำรองข้อมูล','เพิ่มผู้ร่วมทำบุญ','บันทึกค่าใช้จ่าย','ชื่อผู้ร่วมทำบุญ','จำนวนเงิน','สกุลเงิน','วันที่','หมายเหตุ','รายการที่ซื้อ','ค้นหา','สำรองและกู้คืนข้อมูล'],lo:['ລະບົບຈັດການເງິນເຮັດບຸນ','ບັນທຶກລາຍຮັບ ລາຍຈ່າຍ ເງິນກີບ ແລະ ເງິນບາດ','ລາຍຮັບກີບ','ລາຍຈ່າຍກີບ','ຍອດເຫຼືອກີບ','ຍອດເຫຼືອບາດ','ເພີ່ມເງິນເຮັດບຸນ','ບັນທຶກລາຍຈ່າຍ','ລາຍການທັງໝົດ','ສຳຮອງຂໍ້ມູນ','ເພີ່ມຜູ້ຮ່ວມເຮັດບຸນ','ບັນທຶກລາຍຈ່າຍ','ຊື່ຜູ້ຮ່ວມເຮັດບຸນ','ຈຳນວນເງິນ','ສະກຸນເງິນ','ວັນທີ','ໝາຍເຫດ','ລາຍການທີ່ຊື້','ຄົ້ນຫາ','ສຳຮອງ ແລະ ກູ້ຄືນຂໍ້ມູນ']};
-function language(){let a=tr[lang];document.title=a[0];$('sub').textContent=a[1];['s1','s2','s3','s4','t1','t2','t3','t4','h1','h2','l1','l2','l3','l4','l5','l6','l7','l8','l9','l10','h3','search','h4'].forEach((id,i)=>{let map={s1:2,s2:3,s3:4,s4:5,t1:6,t2:7,t3:8,t4:9,h1:10,h2:11,l1:12,l2:13,l3:14,l4:15,l5:16,l6:17,l7:13,l8:14,l9:15,l10:16,h3:8,search:18,h4:19};let el=$(id);if(el){let input=el.querySelector('input');el.childNodes[0].textContent=a[map[id]]+(input?'':'');}});$('lang').textContent=lang==='th'?'🇱🇦 ພາສາລາວ':'🇹🇭 ภาษาไทย';}
-$('lang').onclick=()=>{lang=lang==='th'?'lo':'th';localStorage.setItem('meritLang',lang);language()};language();
-function save(){localStorage.setItem('meritRecordsV2',JSON.stringify(data));render()}
-function fmt(n){return Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2})}
-function render(){let sum=(type,c)=>data.filter(x=>x.type===type&&x.currency===c).reduce((n,x)=>n+Number(x.amount||0),0);$('incL').textContent=fmt(sum('donation','LAK'));$('outL').textContent=fmt(sum('expense','LAK'));$('balL').textContent=fmt(sum('donation','LAK')-sum('expense','LAK'));$('incB').textContent=fmt(sum('donation','THB'));$('outB').textContent=fmt(sum('expense','THB'));$('balB').textContent=fmt(sum('donation','THB')-sum('expense','THB'));let q=$('search').value.toLowerCase();$('rows').innerHTML=data.filter(x=>(String(x.name||'')+' '+String(x.note||'')).toLowerCase().includes(q)).map(x=>'<tr><td>'+x.date+'</td><td>'+(x.type==='donation'?'รับ':'จ่าย')+'</td><td>'+esc(x.name||'')+'</td><td>'+x.currency+'</td><td>'+fmt(x.amount)+'</td><td><button class="danger" data-del="'+x.id+'">ลบ</button></td></tr>').join('');$('rows').querySelectorAll('[data-del]').forEach(btn=>btn.onclick=()=>window.del(btn.dataset.del))}
-function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-window.del=id=>{if(confirm('ยืนยันลบรายการ?')){data=data.filter(x=>x.id!==id);save()}}
-function add(type){const isD=type==='donation',formId=isD?'df':'ef',nameId=isD?'dn':'en',amountId=isD?'da':'ea',currencyId=isD?'dc':'ec',dateId=isD?'dd':'ed',noteId=isD?'dnote':'enote',status=$(isD?'donationStatus':'expenseStatus');try{const n=$(nameId).value.trim(),raw=$(amountId).value,a=Number(raw),c=$(currencyId).value,d=$(dateId).value,note=$(noteId).value.trim();if(!n){status.textContent='กรุณากรอกชื่อหรือรายการ';return}if(!raw||!Number.isFinite(a)||a<=0){status.textContent='กรุณากรอกจำนวนเงินที่มากกว่า 0';return}if(c!=='LAK'&&c!=='THB'){status.textContent='กรุณาเลือกสกุลเงิน';return}const record={id:(Date.now().toString(36)+Math.random().toString(36).slice(2)),type,name:n,amount:a,currency:c,date:d||today,note};data.push(record);localStorage.setItem('meritRecordsV2',JSON.stringify(data));render();status.textContent='บันทึกสำเร็จ: '+n+' — '+fmt(a)+' '+c;$(formId).reset();$(dateId).value=today;}catch(err){console.error(err);status.textContent='บันทึกไม่สำเร็จ: '+(err&&err.message?err.message:'เกิดข้อผิดพลาด')}}
-window.meritAdd=add;$('df').addEventListener('submit',e=>e.preventDefault());$('ef').addEventListener('submit',e=>e.preventDefault());
-$('search').oninput=render;
-document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{['donate','spend','records','backup'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.tab));document.querySelectorAll('[data-tab]').forEach(x=>x.className=x===b?'':'secondary')});
-$('export').onclick=()=>{let a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.href=u;a.download='merit-backup.json';a.click();URL.revokeObjectURL(u)};
-$('restore').onchange=async e=>{try{let v=JSON.parse(await e.target.files[0].text());if(!Array.isArray(v))throw Error();data=v;save();alert('กู้คืนสำเร็จ')}catch{alert('ไฟล์ไม่ถูกต้อง')}};
-$('clear').onclick=()=>{if(confirm('ลบข้อมูลทั้งหมด?')){data=[];save()}};render();
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const today=new Date().toISOString().slice(0,10);
+let data=[];
+try{const raw=localStorage.getItem('meritRecordsV2');const parsed=raw?JSON.parse(raw):[];data=Array.isArray(parsed)?parsed:[];}catch(err){data=[];console.error('อ่านข้อมูลเดิมไม่ได้',err);}
+function message(type,msg){const el=$(type==='donation'?'donationStatus':'expenseStatus');if(el){el.textContent=msg;el.style.cssText='display:block;padding:10px;margin-top:10px;border-radius:8px;background:#eaf5ec;color:#155b32;font-weight:700';}}
+function fmt(n){return Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function render(){
+ const sum=(type,currency)=>data.filter(x=>x.type===type&&x.currency===currency).reduce((n,x)=>n+Number(x.amount||0),0);
+ $('incL').textContent=fmt(sum('donation','LAK'));$('outL').textContent=fmt(sum('expense','LAK'));$('balL').textContent=fmt(sum('donation','LAK')-sum('expense','LAK'));
+ $('incB').textContent=fmt(sum('donation','THB'));$('outB').textContent=fmt(sum('expense','THB'));$('balB').textContent=fmt(sum('donation','THB')-sum('expense','THB'));
+ const rows=$('rows'),search=$('search');if(rows&&search){const q=search.value.toLowerCase();rows.innerHTML=data.filter(x=>(String(x.name||'')+' '+String(x.note||'')).toLowerCase().includes(q)).map(x=>'<tr><td>'+esc(x.date)+'</td><td>'+(x.type==='donation'?'รับ':'จ่าย')+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.currency)+'</td><td>'+fmt(x.amount)+'</td><td><button class="danger" type="button" data-delete="'+esc(x.id)+'">ลบ</button></td></tr>').join('');}
+}
+function add(type){
+ const isDonation=type==='donation',formId=isDonation?'df':'ef',nameId=isDonation?'dn':'en',amountId=isDonation?'da':'ea',currencyId=isDonation?'dc':'ec',dateId=isDonation?'dd':'ed',noteId=isDonation?'dnote':'enote';
+ try{
+  const name=$(nameId).value.trim(),raw=$(amountId).value,currency=$(currencyId).value,amount=Number(raw),date=$(dateId).value||today,note=$(noteId).value.trim();
+  if(!name){message(type,'กรุณากรอกชื่อ/รายการก่อนบันทึก');return;}
+  if(raw===''||!Number.isFinite(amount)||amount<=0){message(type,'กรุณากรอกจำนวนเงินมากกว่า 0');return;}
+  if(!['LAK','THB'].includes(currency)){message(type,'กรุณาเลือกสกุลเงิน');return;}
+  const record={id:String(Date.now())+Math.random().toString(16).slice(2),type,name,amount,currency,date,note};
+  const next=data.concat([record]);
+  localStorage.setItem('meritRecordsV2',JSON.stringify(next));
+  data=next;render();message(type,'บันทึกสำเร็จ: '+name+' — '+fmt(amount)+' '+currency);
+  $(formId).reset();$(dateId).value=today;
+ }catch(err){console.error('SAVE ERROR',err);message(type,'เกิดข้อผิดพลาด: '+(err&&err.message?err.message:'ไม่สามารถบันทึกได้'));}
+}
+function init(){
+ if($('dd'))$('dd').value=today;if($('ed'))$('ed').value=today;
+ if($('saveD'))$('saveD').onclick=function(ev){ev.preventDefault();add('donation');};
+ if($('saveE'))$('saveE').onclick=function(ev){ev.preventDefault();add('expense');};
+ ['df','ef'].forEach(id=>{if($(id))$(id).onsubmit=e=>e.preventDefault();});
+ if($('search'))$('search').oninput=render;
+ document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{['donate','spend','records','backup'].forEach(id=>{if($(id))$(id).classList.toggle('hidden',id!==b.dataset.tab);});document.querySelectorAll('[data-tab]').forEach(x=>x.className=x===b?'':'secondary');}));
+ if($('rows'))$('rows').addEventListener('click',e=>{const b=e.target.closest('[data-delete]');if(b&&confirm('ยืนยันลบรายการ?')){data=data.filter(x=>String(x.id)!==b.dataset.delete);localStorage.setItem('meritRecordsV2',JSON.stringify(data));render();}});
+ if($('export'))$('export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='merit-backup.json';a.click();URL.revokeObjectURL(url);};
+ if($('restore'))$('restore').onchange=async e=>{try{const v=JSON.parse(await e.target.files[0].text());if(!Array.isArray(v))throw Error('รูปแบบไฟล์ไม่ถูกต้อง');localStorage.setItem('meritRecordsV2',JSON.stringify(v));data=v;render();alert('กู้คืนสำเร็จ');}catch(err){alert('กู้คืนไม่สำเร็จ: '+err.message);}};
+ if($('clear'))$('clear').onclick=()=>{if(confirm('ลบข้อมูลทั้งหมด?')){data=[];localStorage.setItem('meritRecordsV2','[]');render();}};
+ render();
+}
+window.meritAdd=add;
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
 </script><script>if('serviceWorker'in navigator) addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));</script></body></html>
