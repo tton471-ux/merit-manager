@@ -1,0 +1,1 @@
+{"name":"ระบบจัดการเงินทำบุญ","short_name":"จัดการเงินทำบุญ","description":"บันทึกรายรับรายจ่าย รองรับภาษาไทย ภาษาลาว เงินกีบและเงินบาท","lang":"th","start_url":"./","scope":"./","display":"standalone","orientation":"portrait","background_color":"#f3f7f3","theme_color":"#126b3d","icons":[{"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
