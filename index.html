@@ -89,8 +89,20 @@ function init(){
  ['df','ef'].forEach(id=>{if($(id))$(id).onsubmit=e=>e.preventDefault();});
  if($('addFund'))$('addFund').onclick=()=>{const name=$('fundName').value.trim(),raw=$('fundAmount').value,amount=Number(raw),currency=$('fundCurrency').value;if(!name){$('fundStatus').textContent='กรุณาตั้งชื่อบัญชีเงิน';return;}if(!raw||!Number.isFinite(amount)||amount<=0){$('fundStatus').textContent='กรุณากรอกจำนวนเงินตั้งต้นมากกว่า 0';return;}funds.push({id:'fund-'+Date.now()+'-'+Math.random().toString(16).slice(2),name,limit:amount,currency});saveFunds();$('fundForm').reset();$('fundStatus').textContent='นำเงินเข้าระบบสำเร็จ';renderFunds();};
  if($('fundList'))$('fundList').addEventListener('click',e=>{const view=e.target.closest('[data-fund-view]'),edit=e.target.closest('[data-fund-edit]'),topup=e.target.closest('[data-fund-add]');if(view)openAccount(view.dataset.fundView);if(edit){const f=funds.find(x=>x.id===edit.dataset.fundEdit);if(f){const n=prompt('เปลี่ยนชื่อวงเงิน',f.name);if(n&&n.trim()){f.name=n.trim();saveFunds();renderFunds();}}}if(topup){const f=funds.find(x=>x.id===topup.dataset.fundAdd);if(f){const v=prompt('นำเงินเพิ่มเข้าบัญชี ('+f.currency+')');if(v!==null){const n=Number(v);if(Number.isFinite(n)&&n>0){f.limit=Number(f.limit)+n;saveFunds();renderFunds();}else alert('กรุณากรอกจำนวนเงินมากกว่า 0');}}}});
- if($('tabExpense'))$('tabExpense').onclick=()=>{accountTab='expense';$('accountEntryForm').classList.add('hidden');renderAccountDashboard();};
- if($('tabIncome'))$('tabIncome').onclick=()=>{accountTab='income';$('accountEntryForm').classList.add('hidden');renderAccountDashboard();};
+ function switchAccountTab(tab){
+  if(tab!=='expense'&&tab!=='income')return;
+  accountTab=tab;
+  const form=$('accountEntryForm');if(form)form.classList.add('hidden');
+  renderAccountDashboard();
+ }
+ const tabBar=document.querySelector('.finance-tabs');
+ if(tabBar){
+  tabBar.style.position='relative';tabBar.style.zIndex='5';
+  tabBar.querySelectorAll('button').forEach(btn=>{btn.style.pointerEvents='auto';btn.style.touchAction='manipulation';});
+  tabBar.addEventListener('click',e=>{const btn=e.target.closest('#tabExpense,#tabIncome');if(!btn)return;e.preventDefault();e.stopPropagation();switchAccountTab(btn.id==='tabIncome'?'income':'expense');});
+ }
+ if($('tabExpense'))$('tabExpense').onclick=()=>switchAccountTab('expense');
+ if($('tabIncome'))$('tabIncome').onclick=()=>switchAccountTab('income');
  document.querySelectorAll('[data-period]').forEach(b=>b.addEventListener('click',()=>{accountPeriod=b.dataset.period;periodOffset=0;renderAccountDashboard();}));
  if($('periodPrev'))$('periodPrev').onclick=()=>{if(accountPeriod!=='all'){periodOffset--;renderAccountDashboard();}};
  if($('periodNext'))$('periodNext').onclick=()=>{if(accountPeriod!=='all'){periodOffset++;renderAccountDashboard();}};
