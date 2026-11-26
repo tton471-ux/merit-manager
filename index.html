@@ -18,6 +18,12 @@ const $=id=>document.getElementById(id);
 const today=new Date().toISOString().slice(0,10);
 let data=[];
 try{const raw=localStorage.getItem('meritRecordsV2');const parsed=raw?JSON.parse(raw):[];data=Array.isArray(parsed)?parsed:[];}catch(err){data=[];console.error('อ่านข้อมูลเดิมไม่ได้',err);}
+let funds=[];
+try{const rawFunds=localStorage.getItem('meritFundsV1');const parsedFunds=rawFunds?JSON.parse(rawFunds):[];funds=Array.isArray(parsedFunds)?parsedFunds:[];}catch(err){funds=[];console.error('อ่านกระเป๋าเงินไม่ได้',err);}
+function saveFunds(){localStorage.setItem('meritFundsV1',JSON.stringify(funds));}
+function fundSpent(id){return data.filter(x=>x.type==='expense'&&x.fundId===id).reduce((n,x)=>n+Number(x.amount||0),0);}
+function fundBalance(f){return Number(f.limit||0)-fundSpent(f.id);}
+function renderFunds(){const list=$('fundList'),sel=$('expenseFund');if(!list||!sel)return;const chosen=sel.value;sel.innerHTML='<option value="">ไม่ระบุวงเงิน</option>'+funds.map(f=>'<option value="'+esc(f.id)+'">'+esc(f.name)+' — คงเหลือ '+fmt(fundBalance(f))+' '+f.currency+'</option>').join('');if(funds.some(f=>f.id===chosen))sel.value=chosen;list.innerHTML=funds.length?funds.map(f=>'<div class="card"><strong>'+esc(f.name)+'</strong><p>คงเหลือ '+fmt(fundBalance(f))+' / '+fmt(f.limit)+' '+f.currency+'</p><p>ใช้ไป '+fmt(fundSpent(f.id))+' '+f.currency+'</p><div class="actions"><button type="button" class="secondary" data-fund-edit="'+esc(f.id)+'">เปลี่ยนชื่อ</button><button type="button" class="secondary" data-fund-add="'+esc(f.id)+'">เพิ่มวงเงิน</button></div></div>').join(''):'<p>ยังไม่มีกระเป๋าเงิน</p>';}
 function message(type,msg){const el=$(type==='donation'?'donationStatus':'expenseStatus');if(el){el.textContent=msg;el.style.cssText='display:block;padding:10px;margin-top:10px;border-radius:8px;background:#eaf5ec;color:#155b32;font-weight:700';}}
 function fmt(n){return Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});}
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -25,16 +31,18 @@ function render(){
  const sum=(type,currency)=>data.filter(x=>x.type===type&&x.currency===currency).reduce((n,x)=>n+Number(x.amount||0),0);
  $('incL').textContent=fmt(sum('donation','LAK'));$('outL').textContent=fmt(sum('expense','LAK'));$('balL').textContent=fmt(sum('donation','LAK')-sum('expense','LAK'));
  $('incB').textContent=fmt(sum('donation','THB'));$('outB').textContent=fmt(sum('expense','THB'));$('balB').textContent=fmt(sum('donation','THB')-sum('expense','THB'));
+ renderFunds();
  const rows=$('rows'),search=$('search');if(rows&&search){const q=search.value.toLowerCase();rows.innerHTML=data.filter(x=>(String(x.name||'')+' '+String(x.note||'')).toLowerCase().includes(q)).map(x=>'<tr><td>'+esc(x.date)+'</td><td>'+(x.type==='donation'?'รับ':'จ่าย')+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.currency)+'</td><td>'+fmt(x.amount)+'</td><td><button class="danger" type="button" data-delete="'+esc(x.id)+'">ลบ</button></td></tr>').join('');}
 }
 function add(type){
  const isDonation=type==='donation',formId=isDonation?'df':'ef',nameId=isDonation?'dn':'en',amountId=isDonation?'da':'ea',currencyId=isDonation?'dc':'ec',dateId=isDonation?'dd':'ed',noteId=isDonation?'dnote':'enote';
  try{
-  const name=$(nameId).value.trim(),raw=$(amountId).value,currency=$(currencyId).value,amount=Number(raw),date=$(dateId).value||today,note=$(noteId).value.trim();
+  const name=$(nameId).value.trim(),raw=$(amountId).value,currency=$(currencyId).value,amount=Number(raw),date=$(dateId).value||today,note=$(noteId).value.trim(),fundId=isDonation?'':$('expenseFund').value;
   if(!name){message(type,'กรุณากรอกชื่อ/รายการก่อนบันทึก');return;}
   if(raw===''||!Number.isFinite(amount)||amount<=0){message(type,'กรุณากรอกจำนวนเงินมากกว่า 0');return;}
   if(!['LAK','THB'].includes(currency)){message(type,'กรุณาเลือกสกุลเงิน');return;}
-  const record={id:String(Date.now())+Math.random().toString(16).slice(2),type,name,amount,currency,date,note};
+  if(!isDonation&&fundId){const f=funds.find(x=>x.id===fundId);if(!f){message(type,'ไม่พบวงเงินที่เลือก');return;}if(f.currency!==currency){message(type,'สกุลเงินต้องตรงกับกระเป๋าเงิน');return;}if(amount>fundBalance(f)){message(type,'วงเงินไม่พอ เหลือ '+fmt(fundBalance(f))+' '+f.currency);return;}}
+  const record={id:String(Date.now())+Math.random().toString(16).slice(2),type,name,amount,currency,date,note,...(!isDonation&&fundId?{fundId}: {})};
   const next=data.concat([record]);
   localStorage.setItem('meritRecordsV2',JSON.stringify(next));
   data=next;render();message(type,'บันทึกสำเร็จ: '+name+' — '+fmt(amount)+' '+currency);
@@ -46,6 +54,8 @@ function init(){
  if($('saveD'))$('saveD').onclick=function(ev){ev.preventDefault();add('donation');};
  if($('saveE'))$('saveE').onclick=function(ev){ev.preventDefault();add('expense');};
  ['df','ef'].forEach(id=>{if($(id))$(id).onsubmit=e=>e.preventDefault();});
+ if($('addFund'))$('addFund').onclick=()=>{const name=$('fundName').value.trim(),raw=$('fundAmount').value,amount=Number(raw),currency=$('fundCurrency').value;if(!name){$('fundStatus').textContent='กรุณาตั้งชื่อวงเงิน';return;}if(!raw||!Number.isFinite(amount)||amount<=0){$('fundStatus').textContent='กรุณากรอกวงเงินมากกว่า 0';return;}funds.push({id:'fund-'+Date.now()+'-'+Math.random().toString(16).slice(2),name,limit:amount,currency});saveFunds();$('fundForm').reset();$('fundStatus').textContent='เพิ่มวงเงินสำเร็จ';renderFunds();};
+ if($('fundList'))$('fundList').addEventListener('click',e=>{const edit=e.target.closest('[data-fund-edit]'),topup=e.target.closest('[data-fund-add]');if(edit){const f=funds.find(x=>x.id===edit.dataset.fundEdit);if(f){const n=prompt('เปลี่ยนชื่อวงเงิน',f.name);if(n&&n.trim()){f.name=n.trim();saveFunds();renderFunds();}}}if(topup){const f=funds.find(x=>x.id===topup.dataset.fundAdd);if(f){const v=prompt('เพิ่มวงเงิน ('+f.currency+')');if(v!==null){const n=Number(v);if(Number.isFinite(n)&&n>0){f.limit=Number(f.limit)+n;saveFunds();renderFunds();}else alert('กรุณากรอกจำนวนเงินมากกว่า 0');}}}});
  if($('search'))$('search').oninput=render;
  document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{['donate','spend','records','backup'].forEach(id=>{if($(id))$(id).classList.toggle('hidden',id!==b.dataset.tab);});document.querySelectorAll('[data-tab]').forEach(x=>x.className=x===b?'':'secondary');}));
  if($('rows'))$('rows').addEventListener('click',e=>{const b=e.target.closest('[data-delete]');if(b&&confirm('ยืนยันลบรายการ?')){data=data.filter(x=>String(x.id)!==b.dataset.delete);localStorage.setItem('meritRecordsV2',JSON.stringify(data));render();}});
