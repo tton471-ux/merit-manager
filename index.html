@@ -64,7 +64,7 @@ function render(){
  $('incL').textContent=fmt(sum('donation','LAK'));$('outL').textContent=fmt(sum('expense','LAK'));$('balL').textContent=fmt(sum('donation','LAK')-sum('expense','LAK'));
  $('incB').textContent=fmt(sum('donation','THB'));$('outB').textContent=fmt(sum('expense','THB'));$('balB').textContent=fmt(sum('donation','THB')-sum('expense','THB'));
  renderFunds();
- const rows=$('rows'),search=$('search');if(rows&&search){const q=search.value.toLowerCase();rows.innerHTML=data.filter(x=>(String(x.name||'')+' '+String(x.note||'')).toLowerCase().includes(q)).map(x=>'<tr><td>'+esc(x.date)+'</td><td>'+(x.type==='donation'?'รับ':'จ่าย')+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.currency)+'</td><td>'+fmt(x.amount)+'</td><td><button class="danger" type="button" data-delete="'+esc(x.id)+'">ลบ</button></td></tr>').join('');}
+ const rows=$('rows'),search=$('search');if(rows&&search){const q=search.value.toLowerCase();rows.innerHTML=data.filter(x=>(String(x.name||'')+' '+String(x.note||'')).toLowerCase().includes(q)).map(x=>'<tr><td>'+esc(x.date)+'</td><td>'+((x.type==='donation'||x.type==='accountIncome')?'รับ':'จ่าย')+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.currency)+'</td><td>'+fmt(x.amount)+'</td><td><button class="danger" type="button" data-delete="'+esc(x.id)+'">ลบ</button></td></tr>').join('');}
 }
 function add(type){
  const isDonation=type==='donation',formId=isDonation?'df':'ef',nameId=isDonation?'dn':'en',amountId=isDonation?'da':'ea',currencyId=isDonation?'dc':'ec',dateId=isDonation?'dd':'ed',noteId=isDonation?'dnote':'enote';
