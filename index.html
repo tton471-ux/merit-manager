@@ -16,7 +16,7 @@
  <div class="drawer-label">บัญชีเงินที่บันทึกไว้</div>
  <div id="drawerCategories"><p style="color:#64746a;font-size:13px">ยังไม่มีบัญชีเงิน</p></div>
 </aside>
-<main><section class="stats"><div class="card"><small>รายรับกีบ (LAK)</small><b class="green" id="incL">0</b></div><div class="card"><small>รายจ่ายกีบ (LAK)</small><b class="red" id="outL">0</b></div><div class="card"><small>คงเหลือกีบ (LAK)</small><b id="balL">0</b></div><div class="card"><small>รายรับบาท (THB)</small><b class="green" id="incB">0</b></div><div class="card"><small>รายจ่ายบาท (THB)</small><b class="red" id="outB">0</b></div><div class="card"><small>คงเหลือบาท (THB)</small><b id="balB">0</b></div></section>
+<main><section class="stats" id="globalStats"><div class="card"><small>รายรับกีบ (LAK)</small><b class="green" id="incL">0</b></div><div class="card"><small>รายจ่ายกีบ (LAK)</small><b class="red" id="outL">0</b></div><div class="card"><small>คงเหลือกีบ (LAK)</small><b id="balL">0</b></div><div class="card"><small>รายรับบาท (THB)</small><b class="green" id="incB">0</b></div><div class="card"><small>รายจ่ายบาท (THB)</small><b class="red" id="outB">0</b></div><div class="card"><small>คงเหลือบาท (THB)</small><b id="balB">0</b></div></section>
 
 <section class="card" id="donate"><h2 id="h1">เพิ่มผู้ร่วมทำบุญ</h2><form id="df"><div class="forms"><label id="l1">ชื่อผู้ร่วมทำบุญ<input id="dn" required></label><label id="l2">จำนวนเงิน<input id="da" type="number" min=".01" step="any" required></label><label id="l3">สกุลเงิน<select id="dc"><option value="LAK">กีบ (LAK)</option><option value="THB">บาท (THB)</option></select></label><label id="l4">วันที่<input id="dd" type="date" required></label><label style="grid-column:1/-1" id="l5">หมายเหตุ<input id="dnote"></label></div><div class="actions"><button id="saveD" type="button" onclick="window.meritAdd('donation')">บันทึก</button></div><p id="donationStatus" role="status" aria-live="polite"></p></form></section>
 <section class="card hidden" id="spend"><h2 id="h2">บันทึกค่าใช้จ่าย</h2><form id="ef"><div class="forms"><label id="l6">รายการที่ซื้อ<input id="en" required></label><label id="l7">จำนวนเงิน<input id="ea" type="number" min=".01" step="any" required></label><label id="l8">สกุลเงิน<select id="ec"><option value="LAK">กีบ (LAK)</option><option value="THB">บาท (THB)</option></select></label><label id="l9">วันที่<input id="ed" type="date" required></label><label>ตัดเงินจากบัญชีใด<select id="expenseFund"><option value="">เลือกบัญชีเงินที่ต้องการหัก</select></label><label style="grid-column:1/-1" id="l10">หมายเหตุ<input id="enote"></label></div><div class="actions"><button id="saveE" type="button" onclick="window.meritAdd('expense')">บันทึก</button></div><p id="expenseStatus" role="status" aria-live="polite"></p></form></section>
@@ -46,7 +46,7 @@ function renderFunds(){
  if(selectedFundId&&funds.some(f=>f.id===selectedFundId))renderFundHistory(selectedFundId);else $('fundHistory').classList.add('hidden');
 }
 function renderFundHistory(id){openAccount(id);}
-function showOnlyPanel(id){['donate','spend','funds','records','backup','accountWorkspace'].forEach(name=>{if($(name))$(name).classList.toggle('hidden',name!==id);});window.scrollTo({top:0,behavior:'smooth'});}
+function showOnlyPanel(id){['donate','spend','funds','records','backup','accountWorkspace'].forEach(name=>{if($(name))$(name).classList.toggle('hidden',name!==id);});if($('globalStats'))$('globalStats').classList.toggle('hidden',id==='accountWorkspace');window.scrollTo({top:0,behavior:'smooth'});}
 function openAccount(id){const f=funds.find(x=>x.id===id);if(!f)return;activeFundId=id;selectedFundId=id;showOnlyPanel('accountWorkspace');$('accountTitle').textContent=f.name;$('accountBalance').textContent=fmt(fundBalance(f));$('accountCurrency').textContent=f.currency;$('accountMeta').textContent='เงินนำเข้ารวม '+fmt(f.limit)+' '+f.currency+'  ·  ใช้ไป '+fmt(fundSpent(id))+' '+f.currency;const items=data.filter(x=>x.type==='expense'&&x.fundId===id).sort((a,b)=>String(b.date).localeCompare(String(a.date)));$('accountLedger').innerHTML=items.length?items.map(x=>'<div class="ledger-row"><div><strong>'+esc(x.name)+'</strong><div style="font-size:12px;color:#68776d">'+esc(x.date)+(x.note?' · '+esc(x.note):'')+'</div></div><div class="ledger-amount" style="color:#b83e36">− '+fmt(x.amount)+' '+x.currency+'</div></div>').join(''):'<div class="account-empty">ยังไม่มีรายการใช้จ่ายจากบัญชีนี้<br>เมื่อบันทึกค่าใช้จ่าย รายการจะปรากฏที่นี่</div>';}
 
 function message(type,msg){const el=$(type==='donation'?'donationStatus':'expenseStatus');if(el){el.textContent=msg;el.style.cssText='display:block;padding:10px;margin-top:10px;border-radius:8px;background:#eaf5ec;color:#155b32;font-weight:700';}}
@@ -72,7 +72,7 @@ function add(type){
   const next=data.concat([record]);
   localStorage.setItem('meritRecordsV2',JSON.stringify(next));
   data=next;render();message(type,'บันทึกสำเร็จ: '+name+' — '+fmt(amount)+' '+currency);
-  $(formId).reset();$(dateId).value=today;
+  $(formId).reset();$(dateId).value=today;if(!isDonation&&activeFundId&&fundId===activeFundId)openAccount(activeFundId);
  }catch(err){console.error('SAVE ERROR',err);message(type,'เกิดข้อผิดพลาด: '+(err&&err.message?err.message:'ไม่สามารถบันทึกได้'));}
 }
 function init(){
